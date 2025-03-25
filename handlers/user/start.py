@@ -116,13 +116,14 @@ async def start_command(client: Client, message: Message):
                     f"❌ Error: {str(e)}", 
                     protect_content=config.PRIVACY_MODE
                 )
-            return
-    
-    await message.reply_text(
-        config.Messages.START_TEXT.format(
-            bot_name=config.BOT_NAME,
-            user_mention=message.from_user.mention
-        ),
-        reply_markup=button_manager.start_button(),
-        protect_content=config.PRIVACY_MODE
-    )
+                
+    else:
+        # Only send start message if no command arguments (pure /start)
+        await message.reply_text(
+            config.Messages.START_TEXT.format(
+                bot_name=config.BOT_NAME,
+                user_mention=message.from_user.mention
+            ),
+            reply_markup=button_manager.start_button(),
+            protect_content=config.PRIVACY_MODE
+        )
