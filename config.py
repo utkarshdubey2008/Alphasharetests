@@ -21,7 +21,7 @@ FORCE_SUB_CHANNEL = int(os.getenv("FORCE_SUB_CHANNEL"))
 # Bot Information
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 BOT_NAME = os.getenv("BOT_NAME")
-BOT_VERSION = "1.3"
+BOT_VERSION = "1.4"
 # Privacy Mode Configuration
 PRIVACY_MODE = os.getenv("PRIVACY_MODE", "off").lower() == "on"
 
@@ -111,7 +111,7 @@ Hello {user_mention}! I'm your secure file sharing assistant.
 
 📢 Join @Thealphabotz for updates!
 👨‍💻 Contact @adarsh2626 for support
-A Open Source Repo :- github.com/utkarshdubey2008/alphashare
+A Open Source Repo :- https://github.com/utkarshdubey2008/alphashare
 
 Use /help to see available commands!
 """
