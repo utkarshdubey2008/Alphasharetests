@@ -1,5 +1,5 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime
+from datetime import datetime, timedelta
 import config
 import pytz
 from typing import List, Dict, Optional, Union
@@ -21,7 +21,6 @@ class Database:
             logger.error(f"Database connection failed: {str(e)}")
             raise
 
-    # User Management Methods
     async def add_user(self, user_id: int, username: str = None, first_name: str = None) -> bool:
         try:
             if not await self.users_collection.find_one({"user_id": user_id}):
@@ -80,7 +79,6 @@ class Database:
             logger.error(f"Error checking user ban status: {str(e)}")
             return False
 
-    # File Management Methods
     async def add_file(self, file_data: dict) -> str:
         try:
             file_data.update({
@@ -98,6 +96,23 @@ class Database:
         except Exception as e:
             logger.error(f"Error adding file: {str(e)}")
             raise
+
+    async def update_file_message_id(self, file_uuid: str, message_id: int) -> bool:
+        try:
+            result = await self.files_collection.update_one(
+                {"uuid": file_uuid},
+                {"$set": {
+                    "message_id": message_id,
+                    "last_accessed": datetime.now(pytz.UTC)
+                }}
+            )
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Updated message ID for file {file_uuid}: {message_id}")
+            return success
+        except Exception as e:
+            logger.error(f"Error updating file message ID: {str(e)}")
+            return False
 
     async def get_file(self, file_uuid: str) -> Optional[dict]:
         try:
@@ -150,14 +165,17 @@ class Database:
             logger.error(f"Error incrementing downloads: {str(e)}")
             return 0
 
-    # Batch Management Methods
     async def add_batch(self, batch_data: dict) -> str:
         try:
+            for file_uuid in batch_data["files"]:
+                file_data = await self.get_file(file_uuid)
+                if not file_data:
+                    raise ValueError(f"File {file_uuid} not found")
+                    
             batch_data.update({
                 "created_at": datetime.now(pytz.UTC),
                 "downloads": 0,
-                "last_accessed": datetime.now(pytz.UTC),
-                "is_active": True
+                "last_accessed": datetime.now(pytz.UTC)
             })
             await self.batch_collection.insert_one(batch_data)
             logger.info(f"New batch created: {batch_data['uuid']}")
@@ -168,27 +186,33 @@ class Database:
 
     async def get_batch(self, batch_uuid: str) -> Optional[dict]:
         try:
-            batch_data = await self.batch_collection.find_one({
-                "uuid": batch_uuid,
-                "is_active": True
-            })
+            batch_data = await self.batch_collection.find_one({"uuid": batch_uuid})
             if batch_data:
-                await self.batch_collection.update_one(
-                    {"uuid": batch_uuid},
-                    {"$set": {"last_accessed": datetime.now(pytz.UTC)}}
-                )
-            return batch_data
+                valid_files = []
+                for file_uuid in batch_data["files"]:
+                    file_data = await self.get_file(file_uuid)
+                    if file_data:
+                        valid_files.append(file_uuid)
+                
+                if valid_files:
+                    await self.batch_collection.update_one(
+                        {"uuid": batch_uuid},
+                        {"$set": {
+                            "last_accessed": datetime.now(pytz.UTC),
+                            "files": valid_files
+                        }}
+                    )
+                    batch_data["files"] = valid_files
+                    return batch_data
+            return None
         except Exception as e:
             logger.error(f"Error getting batch: {str(e)}")
             return None
 
     async def delete_batch(self, batch_uuid: str) -> bool:
         try:
-            result = await self.batch_collection.update_one(
-                {"uuid": batch_uuid},
-                {"$set": {"is_active": False}}
-            )
-            success = result.modified_count > 0
+            result = await self.batch_collection.delete_one({"uuid": batch_uuid})
+            success = result.deleted_count > 0
             if success:
                 logger.info(f"Batch deleted: {batch_uuid}")
             return success
@@ -211,12 +235,11 @@ class Database:
             logger.error(f"Error incrementing batch downloads: {str(e)}")
             return 0
 
-    # Statistics Methods
     async def get_stats(self) -> dict:
         try:
             total_users = await self.users_collection.count_documents({})
             total_files = await self.files_collection.count_documents({})
-            total_batches = await self.batch_collection.count_documents({"is_active": True})
+            total_batches = await self.batch_collection.count_documents({})
             
             downloads_agg = await self.files_collection.aggregate([
                 {"$group": {"_id": None, "total": {"$sum": "$downloads"}}}
@@ -244,30 +267,3 @@ class Database:
                 "total_downloads": 0,
                 "total_batch_downloads": 0
             }
-
-    # Cleanup Methods
-    async def cleanup_old_files(self, days: int = 30) -> int:
-        try:
-            cutoff_date = datetime.now(pytz.UTC) - timedelta(days=days)
-            result = await self.files_collection.delete_many({
-                "last_accessed": {"$lt": cutoff_date}
-            })
-            return result.deleted_count
-        except Exception as e:
-            logger.error(f"Error cleaning up old files: {str(e)}")
-            return 0
-
-    async def cleanup_old_batches(self, days: int = 7) -> int:
-        try:
-            cutoff_date = datetime.now(pytz.UTC) - timedelta(days=days)
-            result = await self.batch_collection.update_many(
-                {
-                    "last_accessed": {"$lt": cutoff_date},
-                    "is_active": True
-                },
-                {"$set": {"is_active": False}}
-            )
-            return result.modified_count
-        except Exception as e:
-            logger.error(f"Error cleaning up old batches: {str(e)}")
-            return 0
