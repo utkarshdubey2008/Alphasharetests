@@ -4,8 +4,10 @@ from database import Database
 from utils import ButtonManager
 import config
 import asyncio
+import logging
 from ..utils.message_delete import schedule_message_deletion
 
+logger = logging.getLogger(__name__)
 db = Database()
 button_manager = ButtonManager()
 
@@ -57,8 +59,25 @@ async def start_command(client: Client, message: Message):
                             message_id=file_data["message_id"],
                             protect_content=config.PRIVACY_MODE
                         )
+                        await db.update_file_message_id(file_uuid, msg.id, message.chat.id)
                         sent_msgs.append(msg.id)
                         success_count += 1
+                        
+                        if file_data.get("auto_delete"):
+                            delete_time = file_data.get("auto_delete_time", getattr(config, 'DEFAULT_AUTO_DELETE', 30))
+                            info_msg = await msg.reply_text(
+                                f"⏳ **File Auto-Delete Information**\n\n"
+                                f"This file will be automatically deleted in {delete_time} minutes\n"
+                                f"• Delete Time: {delete_time} minutes\n"
+                                f"• Time Left: {delete_time} minutes\n"
+                                f"💡 **Save this file to your saved messages before it's deleted!**",
+                                protect_content=config.PRIVACY_MODE
+                            )
+                            sent_msgs.append(info_msg.id)
+                            asyncio.create_task(schedule_message_deletion(
+                                client, file_uuid, message.chat.id, [msg.id, info_msg.id], delete_time
+                            ))
+                            
                     except Exception as e:
                         failed_count += 1
                         logger.error(f"Batch file send error: {str(e)}")
@@ -96,20 +115,19 @@ async def start_command(client: Client, message: Message):
                 await db.update_file_message_id(file_uuid, msg.id, message.chat.id)
                 
                 if file_data.get("auto_delete"):
-                    delete_time = file_data.get("auto_delete_time")
-                    if delete_time:
-                        info_msg = await msg.reply_text(
-                            f"⏳ **File Auto-Delete Information**\n\n"
-                            f"This file will be automatically deleted in {delete_time} minutes\n"
-                            f"• Delete Time: {delete_time} minutes\n"
-                            f"• Time Left: {delete_time} minutes\n"
-                            f"💡 **Save this file to your saved messages before it's deleted!**",
-                            protect_content=config.PRIVACY_MODE
-                        )
-                        
-                        asyncio.create_task(schedule_message_deletion(
-                            client, file_uuid, message.chat.id, [msg.id, info_msg.id], delete_time
-                        ))
+                    delete_time = file_data.get("auto_delete_time", getattr(config, 'DEFAULT_AUTO_DELETE', 30))
+                    info_msg = await msg.reply_text(
+                        f"⏳ **File Auto-Delete Information**\n\n"
+                        f"This file will be automatically deleted in {delete_time} minutes\n"
+                        f"• Delete Time: {delete_time} minutes\n"
+                        f"• Time Left: {delete_time} minutes\n"
+                        f"💡 **Save this file to your saved messages before it's deleted!**",
+                        protect_content=config.PRIVACY_MODE
+                    )
+                    
+                    asyncio.create_task(schedule_message_deletion(
+                        client, file_uuid, message.chat.id, [msg.id, info_msg.id], delete_time
+                    ))
                     
             except Exception as e:
                 await message.reply_text(
@@ -118,7 +136,6 @@ async def start_command(client: Client, message: Message):
                 )
                 
     else:
-        # Only send start message if no command arguments (pure /start)
         await message.reply_text(
             config.Messages.START_TEXT.format(
                 bot_name=config.BOT_NAME,
