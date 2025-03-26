@@ -31,7 +31,6 @@ class Database:
                     "username": username,
                     "first_name": first_name,
                     "join_date": datetime.now(pytz.UTC),
-                    "is_banned": False,
                     "total_files": 0,
                     "total_downloads": 0
                 }
@@ -43,48 +42,9 @@ class Database:
             logger.error(f"Error adding user: {str(e)}")
             return False
 
-    async def remove_user(self, user_id: int) -> bool:
-        try:
-            result = await self.users_collection.delete_one({"user_id": user_id})
-            return result.deleted_count > 0
-        except Exception as e:
-            logger.error(f"Error removing user: {str(e)}")
-            return False
-
-    async def ban_user(self, user_id: int) -> bool:
-        try:
-            result = await self.users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"is_banned": True}}
-            )
-            return result.modified_count > 0
-        except Exception as e:
-            logger.error(f"Error banning user: {str(e)}")
-            return False
-
-    async def unban_user(self, user_id: int) -> bool:
-        try:
-            result = await self.users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"is_banned": False}}
-            )
-            return result.modified_count > 0
-        except Exception as e:
-            logger.error(f"Error unbanning user: {str(e)}")
-            return False
-
-    async def is_user_banned(self, user_id: int) -> bool:
-        try:
-            user = await self.users_collection.find_one({"user_id": user_id})
-            return user.get("is_banned", False) if user else False
-        except Exception as e:
-            logger.error(f"Error checking user ban status: {str(e)}")
-            return False
-
     async def get_all_users(self) -> List[Dict]:
         try:
-            cursor = self.users_collection.find({"is_banned": False})
-            return await cursor.to_list(length=None)
+            return await self.users_collection.find({}).to_list(None)
         except Exception as e:
             logger.error(f"Error getting all users: {str(e)}")
             return []
@@ -291,4 +251,4 @@ class Database:
                 "total_downloads": 0,
                 "total_batch_downloads": 0,
                 "active_files": 0
-                }
+    }
