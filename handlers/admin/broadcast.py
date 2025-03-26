@@ -19,6 +19,11 @@ async def broadcast_command(client: Client, message: Message):
     
     status_msg = await message.reply_text("🔄 Broadcasting message...")
     users = await db.get_all_users()
+    
+    if not users:
+        await status_msg.edit_text("❌ No users found in database!")
+        return
+        
     success = 0
     failed = 0
     
@@ -33,7 +38,11 @@ async def broadcast_command(client: Client, message: Message):
                     message_id=replied_msg.message_id
                 )
             success += 1
-        except:
+            # Update status every 20 users
+            if success % 20 == 0:
+                await status_msg.edit_text(f"🔄 Broadcasting...\n✓ Sent: {success}\n× Failed: {failed}")
+        except Exception as e:
+            logger.error(f"Failed to send broadcast to user {user['user_id']}: {str(e)}")
             failed += 1
         await asyncio.sleep(0.1)
     
