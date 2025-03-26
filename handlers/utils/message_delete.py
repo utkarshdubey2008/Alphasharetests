@@ -1,24 +1,25 @@
 from pyrogram import Client
-from database import Database
 import asyncio
+import logging
 
-db = Database()
+logger = logging.getLogger(__name__)
 
 async def schedule_message_deletion(client: Client, file_uuid: str, chat_id: int, message_ids: list, delete_time: int):
     await asyncio.sleep(delete_time * 60)
     try:
         await client.delete_messages(chat_id, message_ids)
-        await client.send_message(
+        notification_msg = await client.send_message(
             chat_id=chat_id,
             text=(
-                "🚫 **File Deleted Due to Copyright Protection**\n\n"
-                "The file you received has been automatically deleted as part of our copyright protection measures.\n\n"
-                "• If you need the file again, you can request it using the same link\n"
-                "• Save important files to your saved messages before they're deleted\n"
-                "• This helps us maintain a fair and legal file-sharing environment"
+                "🕒 **Auto-Delete Notification**\n\n"
+                "The file you received has been automatically deleted.\n\n"
+                "• You can request the file again using the same link\n"
+                "• Save important files to your saved messages\n"
+                "• Auto-delete helps maintain server space\n\n"
+                "💡 The file remains in our database for future access"
             )
         )
-        for msg_id in message_ids:
-            await db.remove_file_message(file_uuid, chat_id, msg_id)
+        await asyncio.sleep(30)
+        await notification_msg.delete()
     except Exception as e:
-        print(f"Error in auto-delete: {str(e)}")
+        logger.error(f"Error in message deletion: {str(e)}")
