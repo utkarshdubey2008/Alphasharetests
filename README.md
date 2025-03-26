@@ -48,7 +48,7 @@
 - **Bot Keep-Alive Mechanism**: Ensures 24/7 uptime for a seamless experience on Koyeb.
 - **URL Shortening**: Shorten any link using the `/short` command with Modiji URL API.
 - **Privacy Mode**: Protects files by preventing users from forwarding or copying them.
-
+- **BATCH UPLOADS** : Allows Users To Upload Multiple File At Once And Get A Single Link For It.
 </details>
 
 <details>
@@ -112,7 +112,7 @@ MODIJI_API_KEY - Your Modiji URL API key
 /start - Start the bot
 /help - Show help message
 /about - About the bot
-/short - Shorten a URL using Modiji URL API
+
 ```
 
 ### Admin Commands
@@ -124,6 +124,8 @@ MODIJI_API_KEY - Your Modiji URL API key
 /delete - Delete a file
 /fileinfo - Get file information
 /auto_del - Set auto-delete timer
+/short <url> - To short the url in your preferred Shortner
+/batch - Batch Multiple Files At Once
 ```
 
 </details>
@@ -164,15 +166,14 @@ SUPPORTED_MIME_TYPES = [
 </details>
 
 <details>
-<summary><b>📦 Tech Stack</b></summary>
-
+  <summary><b>📦 Tech Stack</b></summary>
 - **Python** - Programming Language
 - **Pyrogram** - Telegram MTProto API Framework
 - **MongoDB** - Database
 - **Motor** - Async MongoDB Driver
 - **aiofiles** - Async File Operations
 
-</details>
+  </details>
 
 <details>
 <summary><b>📋 Dependencies</b></summary>
