@@ -4,6 +4,7 @@ import config
 import pytz
 from typing import List, Dict, Optional, Union
 import logging
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class Database:
             self.files_collection = self.db.files
             self.users_collection = self.db.users
             self.batch_collection = self.db.batches
+            self.messages_collection = self.db.messages
             logger.info("Database connection established successfully")
         except Exception as e:
             logger.error(f"Database connection failed: {str(e)}")
@@ -82,9 +84,11 @@ class Database:
     async def add_file(self, file_data: dict) -> str:
         try:
             file_data.update({
+                "uuid": str(uuid.uuid4()),
                 "upload_time": datetime.now(pytz.UTC),
                 "downloads": 0,
-                "last_accessed": datetime.now(pytz.UTC)
+                "last_accessed": datetime.now(pytz.UTC),
+                "active_copies": []
             })
             await self.files_collection.insert_one(file_data)
             await self.users_collection.update_one(
@@ -99,18 +103,23 @@ class Database:
 
     async def update_file_message_id(self, file_uuid: str, message_id: int, chat_id: int) -> bool:
         try:
-            result = await self.files_collection.update_one(
+            message_data = {
+                "file_uuid": file_uuid,
+                "message_id": message_id,
+                "chat_id": chat_id,
+                "created_at": datetime.now(pytz.UTC)
+            }
+            await self.messages_collection.insert_one(message_data)
+            
+            await self.files_collection.update_one(
                 {"uuid": file_uuid},
-                {"$set": {
-                    "message_id": message_id,
-                    "chat_id": chat_id,
-                    "last_accessed": datetime.now(pytz.UTC)
-                }}
+                {
+                    "$push": {"active_copies": {"chat_id": chat_id, "message_id": message_id}},
+                    "$set": {"last_accessed": datetime.now(pytz.UTC)}
+                }
             )
-            success = result.modified_count > 0
-            if success:
-                logger.info(f"Updated message ID for file {file_uuid}: {message_id} in chat {chat_id}")
-            return success
+            logger.info(f"Added message copy for file {file_uuid}: {message_id} in chat {chat_id}")
+            return True
         except Exception as e:
             logger.error(f"Error updating file message ID: {str(e)}")
             return False
@@ -138,6 +147,7 @@ class Database:
                         {"user_id": file_data["uploader_id"]},
                         {"$inc": {"total_files": -1}}
                     )
+                    await self.messages_collection.delete_many({"file_uuid": file_uuid})
                     logger.info(f"File deleted: {file_uuid}")
                     return True
             return False
@@ -174,9 +184,11 @@ class Database:
                     raise ValueError(f"File {file_uuid} not found")
                     
             batch_data.update({
+                "uuid": str(uuid.uuid4()),
                 "created_at": datetime.now(pytz.UTC),
                 "downloads": 0,
-                "last_accessed": datetime.now(pytz.UTC)
+                "last_accessed": datetime.now(pytz.UTC),
+                "active_copies": []
             })
             await self.batch_collection.insert_one(batch_data)
             logger.info(f"New batch created: {batch_data['uuid']}")
@@ -252,12 +264,15 @@ class Database:
             ]).to_list(1)
             total_batch_downloads = batch_downloads_agg[0]["total"] if batch_downloads_agg else 0
             
+            active_files = await self.files_collection.count_documents({"active_copies": {"$ne": []}})
+            
             return {
                 "total_users": total_users,
                 "total_files": total_files,
                 "total_batches": total_batches,
                 "total_downloads": total_downloads,
-                "total_batch_downloads": total_batch_downloads
+                "total_batch_downloads": total_batch_downloads,
+                "active_files": active_files
             }
         except Exception as e:
             logger.error(f"Error getting stats: {str(e)}")
@@ -266,5 +281,6 @@ class Database:
                 "total_files": 0,
                 "total_batches": 0,
                 "total_downloads": 0,
-                "total_batch_downloads": 0
-            }
+                "total_batch_downloads": 0,
+                "active_files": 0
+        }
