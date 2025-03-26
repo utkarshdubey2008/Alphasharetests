@@ -81,6 +81,14 @@ class Database:
             logger.error(f"Error checking user ban status: {str(e)}")
             return False
 
+    async def get_all_users(self) -> List[Dict]:
+        try:
+            cursor = self.users_collection.find({"is_banned": False})
+            return await cursor.to_list(length=None)
+        except Exception as e:
+            logger.error(f"Error getting all users: {str(e)}")
+            return []
+
     async def add_file(self, file_data: dict) -> str:
         try:
             file_data.update({
@@ -283,4 +291,4 @@ class Database:
                 "total_downloads": 0,
                 "total_batch_downloads": 0,
                 "active_files": 0
-        }
+                }
