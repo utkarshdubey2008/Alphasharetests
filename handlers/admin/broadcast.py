@@ -3,7 +3,9 @@ from pyrogram.types import Message
 from database import Database
 from utils import is_admin
 import asyncio
+import logging
 
+logger = logging.getLogger(__name__)
 db = Database()
 
 @Client.on_message(filters.command("broadcast") & filters.reply)
@@ -27,10 +29,16 @@ async def broadcast_command(client: Client, message: Message):
     success = 0
     failed = 0
     
-    for user in users:
+    total_users = len(users)
+    progress_interval = max(total_users // 5, 1)  # Update progress every 20% or for each user if less than 5 users
+    
+    for index, user in enumerate(users, 1):
         try:
             if replied_msg.text:
-                await client.send_message(user["user_id"], replied_msg.text)
+                await client.send_message(
+                    chat_id=user["user_id"],
+                    text=replied_msg.text
+                )
             elif replied_msg.media:
                 await client.copy_message(
                     chat_id=user["user_id"],
@@ -38,18 +46,32 @@ async def broadcast_command(client: Client, message: Message):
                     message_id=replied_msg.message_id
                 )
             success += 1
-            # Update status every 20 users
-            if success % 20 == 0:
-                await status_msg.edit_text(f"🔄 Broadcasting...\n✓ Sent: {success}\n× Failed: {failed}")
+            
+            # Update progress periodically
+            if index % progress_interval == 0:
+                progress = (index / total_users) * 100
+                await status_msg.edit_text(
+                    f"🔄 Broadcasting...\n"
+                    f"Progress: {progress:.1f}%\n"
+                    f"✓ Success: {success}\n"
+                    f"× Failed: {failed}\n"
+                    f"📊 Total: {index}/{total_users}"
+                )
         except Exception as e:
-            logger.error(f"Failed to send broadcast to user {user['user_id']}: {str(e)}")
             failed += 1
-        await asyncio.sleep(0.1)
+            logger.error(f"Failed to send broadcast to user {user.get('user_id')}: {str(e)}")
+        
+        # Add a small delay to avoid flooding
+        await asyncio.sleep(0.05)
     
+    # Final status update
     broadcast_text = (
         "✅ **Broadcast Completed**\n\n"
         f"✓ Success: {success}\n"
         f"× Failed: {failed}\n"
-        f"📊 Total: {success + failed}"
+        f"📊 Total: {total_users}"
     )
     await status_msg.edit_text(broadcast_text)
+    
+    # Log the broadcast completion
+    logger.info(f"Broadcast completed - Success: {success}, Failed: {failed}, Total: {total_users}")
