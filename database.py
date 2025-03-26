@@ -97,18 +97,19 @@ class Database:
             logger.error(f"Error adding file: {str(e)}")
             raise
 
-    async def update_file_message_id(self, file_uuid: str, message_id: int) -> bool:
+    async def update_file_message_id(self, file_uuid: str, message_id: int, chat_id: int) -> bool:
         try:
             result = await self.files_collection.update_one(
                 {"uuid": file_uuid},
                 {"$set": {
                     "message_id": message_id,
+                    "chat_id": chat_id,
                     "last_accessed": datetime.now(pytz.UTC)
                 }}
             )
             success = result.modified_count > 0
             if success:
-                logger.info(f"Updated message ID for file {file_uuid}: {message_id}")
+                logger.info(f"Updated message ID for file {file_uuid}: {message_id} in chat {chat_id}")
             return success
         except Exception as e:
             logger.error(f"Error updating file message ID: {str(e)}")
