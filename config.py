@@ -16,7 +16,17 @@ DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 # Channel Configuration
 DB_CHANNEL_ID = int(os.getenv("DB_CHANNEL_ID"))
-FORCE_SUB_CHANNEL = int(os.getenv("FORCE_SUB_CHANNEL"))
+# Force Sub Channels
+FORCE_SUB_CHANNEL1 = int(os.getenv("FORCE_SUB_CHANNEL1", "0"))
+FORCE_SUB_CHANNEL2 = int(os.getenv("FORCE_SUB_CHANNEL2", "0"))
+FORCE_SUB_CHANNEL3 = int(os.getenv("FORCE_SUB_CHANNEL3", "0"))
+FORCE_SUB_CHANNEL4 = int(os.getenv("FORCE_SUB_CHANNEL4", "0"))
+
+# Force Sub Channel Links
+FORCE_SUB_LINK1 = os.getenv("FORCE_SUB_LINK1", "")
+FORCE_SUB_LINK2 = os.getenv("FORCE_SUB_LINK2", "")
+FORCE_SUB_LINK3 = os.getenv("FORCE_SUB_LINK3", "")
+FORCE_SUB_LINK4 = os.getenv("FORCE_SUB_LINK4", "")
 
 # Bot Information
 BOT_USERNAME = os.getenv("BOT_USERNAME")
