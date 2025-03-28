@@ -15,20 +15,18 @@ button_manager = ButtonManager()
 async def start_command(client: Client, message: Message):
     await db.add_user(message.from_user.id, message.from_user.username)
     
+    is_subscribed = await button_manager.check_force_sub(client, message.from_user.id)
+    if not is_subscribed:
+        await message.reply_text(
+            config.Messages.FORCE_SUB_TEXT,
+            reply_markup=button_manager.force_sub_button(),
+            protect_content=config.PRIVACY_MODE
+        )
+        return
+    
     if len(message.command) > 1:
         command = message.command[1]
         
-        is_subscribed = await button_manager.check_force_sub(client, message.from_user.id)
-        if not is_subscribed:
-            await message.reply_text(
-                "**⚠️ Access Restricted!**\n\n"
-                "You must join our channel(s) to use this bot!\n"
-                "Please join all the channels and start the bot again.",
-                reply_markup=button_manager.force_sub_button(),
-                protect_content=config.PRIVACY_MODE
-            )
-            return
-
         if command.startswith("batch_"):
             batch_uuid = command.replace("batch_", "")
             batch_data = await db.get_batch(batch_uuid)
@@ -147,4 +145,4 @@ async def start_command(client: Client, message: Message):
             ),
             reply_markup=button_manager.start_button(),
             protect_content=config.PRIVACY_MODE
-        )
+            )
