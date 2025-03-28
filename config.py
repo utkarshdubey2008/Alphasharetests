@@ -16,17 +16,34 @@ DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 # Channel Configuration
 DB_CHANNEL_ID = int(os.getenv("DB_CHANNEL_ID"))
-# Force Subscription Channels (IDs)
-FORCE_SUB_CHANNEL1 = int((os.getenv("FORCE_SUB_CHANNEL1") or "0"))
-FORCE_SUB_CHANNEL2 = int((os.getenv("FORCE_SUB_CHANNEL2") or "0"))
-FORCE_SUB_CHANNEL3 = int((os.getenv("FORCE_SUB_CHANNEL3") or "0"))
-FORCE_SUB_CHANNEL4 = int((os.getenv("FORCE_SUB_CHANNEL4") or "0"))
 
-# Force Subscription Channel Links
-FORCE_SUB_LINK1 = os.getenv("FORCE_SUB_LINK1", "")
-FORCE_SUB_LINK2 = os.getenv("FORCE_SUB_LINK2", "")
-FORCE_SUB_LINK3 = os.getenv("FORCE_SUB_LINK3", "")
-FORCE_SUB_LINK4 = os.getenv("FORCE_SUB_LINK4", "")
+def get_channel_id(env_var):
+    value = os.getenv(env_var, "")
+    try:
+        return int(value) if value.strip() else 0
+    except ValueError:
+        return 0
+
+FORCE_SUB_CHANNEL1 = get_channel_id("FORCE_SUB_CHANNEL1")
+FORCE_SUB_CHANNEL2 = get_channel_id("FORCE_SUB_CHANNEL2")
+FORCE_SUB_CHANNEL3 = get_channel_id("FORCE_SUB_CHANNEL3")
+FORCE_SUB_CHANNEL4 = get_channel_id("FORCE_SUB_CHANNEL4")
+
+FORCE_SUB_LINK1 = os.getenv("FORCE_SUB_LINK1", "").strip()
+FORCE_SUB_LINK2 = os.getenv("FORCE_SUB_LINK2", "").strip()
+FORCE_SUB_LINK3 = os.getenv("FORCE_SUB_LINK3", "").strip()
+FORCE_SUB_LINK4 = os.getenv("FORCE_SUB_LINK4", "").strip()
+
+# Update the FORCE_SUB_TEXT in Messages class
+class Messages:
+    FORCE_SUB_TEXT = """
+⚠️ **Access Restricted!**
+
+You must join our channel(s) to use this bot!
+Please join all the required channels and try again.
+
+Bot By @Thealphabotz
+"""
 
 # Bot Information
 BOT_USERNAME = os.getenv("BOT_USERNAME")
@@ -185,16 +202,7 @@ Made with ❤️ by @adarsh2626
 🔗 **Share Link:**
 `{share_link}`
 """
-
-    FORCE_SUB_TEXT = """
-⚠️ **Access Restricted!**
-
-Please join our channel to use this bot:
-Bot By @Thealphabotz
-
-Click button below, then try again!
-"""
-
+    
 class Buttons:
     def start_buttons() -> List[List[Dict[str, str]]]:
         return [
