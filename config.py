@@ -16,13 +16,13 @@ DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 # Channel Configuration
 DB_CHANNEL_ID = int(os.getenv("DB_CHANNEL_ID"))
-# Force Sub Channels
-FORCE_SUB_CHANNEL1 = int(os.getenv("FORCE_SUB_CHANNEL1", "0"))
-FORCE_SUB_CHANNEL2 = int(os.getenv("FORCE_SUB_CHANNEL2", "0"))
-FORCE_SUB_CHANNEL3 = int(os.getenv("FORCE_SUB_CHANNEL3", "0"))
-FORCE_SUB_CHANNEL4 = int(os.getenv("FORCE_SUB_CHANNEL4", "0"))
+# Force Subscription Channels (IDs)
+FORCE_SUB_CHANNEL1 = int((os.getenv("FORCE_SUB_CHANNEL1") or "0"))
+FORCE_SUB_CHANNEL2 = int((os.getenv("FORCE_SUB_CHANNEL2") or "0"))
+FORCE_SUB_CHANNEL3 = int((os.getenv("FORCE_SUB_CHANNEL3") or "0"))
+FORCE_SUB_CHANNEL4 = int((os.getenv("FORCE_SUB_CHANNEL4") or "0"))
 
-# Force Sub Channel Links
+# Force Subscription Channel Links
 FORCE_SUB_LINK1 = os.getenv("FORCE_SUB_LINK1", "")
 FORCE_SUB_LINK2 = os.getenv("FORCE_SUB_LINK2", "")
 FORCE_SUB_LINK3 = os.getenv("FORCE_SUB_LINK3", "")
