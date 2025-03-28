@@ -18,13 +18,13 @@ async def start_command(client: Client, message: Message):
     if len(message.command) > 1:
         command = message.command[1]
         
-        force_sub_result = await button_manager.check_force_sub(client, message.from_user.id)
-        if not force_sub_result["subscribed"]:
+        is_subscribed = await button_manager.check_force_sub(client, message.from_user.id)
+        if not is_subscribed:
             await message.reply_text(
                 "**⚠️ Access Restricted!**\n\n"
                 "You must join our channel(s) to use this bot!\n"
                 "Please join all the channels and start the bot again.",
-                reply_markup=button_manager.force_sub_button(force_sub_result["channels"]),
+                reply_markup=button_manager.force_sub_button(),
                 protect_content=config.PRIVACY_MODE
             )
             return
@@ -147,4 +147,4 @@ async def start_command(client: Client, message: Message):
             ),
             reply_markup=button_manager.start_button(),
             protect_content=config.PRIVACY_MODE
-            )
+        )
