@@ -7,37 +7,45 @@ logger = logging.getLogger(__name__)
 
 class ButtonManager:
     def __init__(self):
-        self.force_sub_channels = {
-            1: config.FORCE_SUB_CHANNEL1 if hasattr(config, 'FORCE_SUB_CHANNEL1') else None,
-            2: config.FORCE_SUB_CHANNEL2 if hasattr(config, 'FORCE_SUB_CHANNEL2') else None,
-            3: config.FORCE_SUB_CHANNEL3 if hasattr(config, 'FORCE_SUB_CHANNEL3') else None,
-            4: config.FORCE_SUB_CHANNEL4 if hasattr(config, 'FORCE_SUB_CHANNEL4') else None
-        }
-        self.force_sub_links = {
-            1: config.FORCE_SUB_LINK1 if hasattr(config, 'FORCE_SUB_LINK1') else None,
-            2: config.FORCE_SUB_LINK2 if hasattr(config, 'FORCE_SUB_LINK2') else None,
-            3: config.FORCE_SUB_LINK3 if hasattr(config, 'FORCE_SUB_LINK3') else None,
-            4: config.FORCE_SUB_LINK4 if hasattr(config, 'FORCE_SUB_LINK4') else None
-        }
+        self.force_sub_channels = []
+        self.force_sub_links = []
+        
+        if hasattr(config, 'FORCE_SUB_CHANNEL1') and config.FORCE_SUB_CHANNEL1 != 0:
+            self.force_sub_channels.append(config.FORCE_SUB_CHANNEL1)
+            self.force_sub_links.append(config.FORCE_SUB_LINK1)
+            
+        if hasattr(config, 'FORCE_SUB_CHANNEL2') and config.FORCE_SUB_CHANNEL2 != 0:
+            self.force_sub_channels.append(config.FORCE_SUB_CHANNEL2)
+            self.force_sub_links.append(config.FORCE_SUB_LINK2)
+            
+        if hasattr(config, 'FORCE_SUB_CHANNEL3') and config.FORCE_SUB_CHANNEL3 != 0:
+            self.force_sub_channels.append(config.FORCE_SUB_CHANNEL3)
+            self.force_sub_links.append(config.FORCE_SUB_LINK3)
+            
+        if hasattr(config, 'FORCE_SUB_CHANNEL4') and config.FORCE_SUB_CHANNEL4 != 0:
+            self.force_sub_channels.append(config.FORCE_SUB_CHANNEL4)
+            self.force_sub_links.append(config.FORCE_SUB_LINK4)
+        
         self.db_channel = config.DB_CHANNEL_ID
 
-    async def check_force_sub(self, client, user_id: int) -> dict:
-        result = {"subscribed": True, "channels": []}
-        
-        for channel_num, channel_id in self.force_sub_channels.items():
-            if channel_id:
-                try:
-                    member = await client.get_chat_member(channel_id, user_id)
-                    if member.status in ["left", "kicked"]:
-                        result["subscribed"] = False
-                        channel_link = self.force_sub_links.get(channel_num)
-                        if channel_link:
-                            result["channels"].append(channel_link)
-                except Exception as e:
-                    logger.error(f"Force sub check error for channel {channel_id}: {str(e)}")
-                    continue
-        
-        return result
+    async def check_force_sub(self, client, user_id: int) -> bool:
+        if not self.force_sub_channels:
+            return True
+            
+        try:
+            for channel_id in self.force_sub_channels:
+                if channel_id != 0:
+                    try:
+                        member = await client.get_chat_member(chat_id=channel_id, user_id=user_id)
+                        if member.status in ["left", "kicked", "banned"]:
+                            return False
+                    except Exception as e:
+                        logger.error(f"Force sub check error for channel {channel_id}: {str(e)}")
+                        continue
+            return True
+        except Exception as e:
+            logger.error(f"Force sub check error: {str(e)}")
+            return False
 
     async def show_start(self, client, callback_query: CallbackQuery):
         try:
@@ -72,35 +80,16 @@ class ButtonManager:
         except Exception as e:
             logger.error(f"Show about error: {str(e)}")
 
-    def force_sub_button(self, channels: list = None) -> InlineKeyboardMarkup:
+    def force_sub_button(self) -> InlineKeyboardMarkup:
         buttons = []
-        
-        if channels:
-            for i, channel in enumerate(channels, 1):
+        for i, link in enumerate(self.force_sub_links):
+            if link:
                 buttons.append([
                     InlineKeyboardButton(
-                        f"Join Channel {i} 🔔",
-                        url=channel
+                        f"Join Channel {i + 1} 🔔",
+                        url=link
                     )
                 ])
-        else:
-            for i, link in self.force_sub_links.items():
-                if link:
-                    buttons.append([
-                        InlineKeyboardButton(
-                            f"Join Channel {i} 🔔",
-                            url=link
-                        )
-                    ])
-        
-        if not buttons and config.CHANNEL_LINK:
-            buttons.append([
-                InlineKeyboardButton(
-                    "Join Channel 🔔",
-                    url=config.CHANNEL_LINK
-                )
-            ])
-            
         return InlineKeyboardMarkup(buttons)
 
     def start_button(self) -> InlineKeyboardMarkup:
